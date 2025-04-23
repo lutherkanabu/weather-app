@@ -21,7 +21,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
       <form onSubmit={handleSubmit} className="flex">
         <input
           type="text"
-          className="w-full px-4 py-2 text-gray-800 border border-amber-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+          className="w-full px-4 py-2 text-white bg-gray-800 border border-amber-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
           placeholder="Search city..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
