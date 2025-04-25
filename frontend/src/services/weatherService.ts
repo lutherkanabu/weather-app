@@ -51,6 +51,29 @@ export interface ForecastData {
   }>;
 }
 
+// Geocoding interface
+export interface GeocodingResult {
+  name: string;
+  lat: number;
+  lon: number;
+  country: string;
+  state?: string;
+}
+
+export const searchLocations = async (query: string): Promise<GeocodingResult[]> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/geocoding?q=${encodeURIComponent(query)}&limit=5`);
+    
+    if (!response.ok) {
+      throw new Error('Location search failed');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error searching locations:', error);
+    return [];
+  }
+};
 
 export const fetchCurrentWeather = async (city: string): Promise<WeatherData> => {
   try {
@@ -67,6 +90,21 @@ export const fetchCurrentWeather = async (city: string): Promise<WeatherData> =>
   }
 };
 
+// Optionally accept coordinates
+export const fetchCurrentWeatherByCoords = async (lat: number, lon: number): Promise<WeatherData> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/weather/current/coords?lat=${lat}&lon=${lon}`);
+    
+    if (!response.ok) {
+      throw new Error('Weather data not available');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching weather data by coordinates:', error);
+    throw error;
+  }
+};
 
 export const fetchForecast = async (city: string): Promise<ForecastData> => {
   try {
@@ -83,6 +121,20 @@ export const fetchForecast = async (city: string): Promise<ForecastData> => {
   }
 };
 
+export const fetchForecastByCoords = async (lat: number, lon: number): Promise<ForecastData> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/weather/forecast/coords?lat=${lat}&lon=${lon}`);
+    
+    if (!response.ok) {
+      throw new Error('Forecast data not available');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching forecast data by coordinates:', error);
+    throw error;
+  }
+};
 
 export const convertToFahrenheit = (celsius: number): number => {
   return (celsius * 9/5) + 32;
@@ -98,14 +150,13 @@ export const formatDate = (timestamp: number): string => {
   });
 };
 
+export const formatDay = (timestamp: number): string => {
+  const date = new Date(timestamp * 1000);
+  return date.toLocaleDateString('en-US', { weekday: 'long' });
+};
+
 export const getWindDirection = (degrees: number): string => {
   const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
   const index = Math.round(degrees / 22.5) % 16;
   return directions[index];
-};
-
-
-export const formatDay = (timestamp: number): string => {
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleDateString('en-US', { weekday: 'long' });
 };
