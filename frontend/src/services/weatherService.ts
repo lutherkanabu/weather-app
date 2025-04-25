@@ -1,7 +1,7 @@
 // src/services/weatherService.ts
-
 const API_BASE_URL = 'http://localhost:8000/api';
 
+// WeatherData interface
 export interface WeatherData {
   name: string;
   sys: {
@@ -24,6 +24,34 @@ export interface WeatherData {
   dt: number;
 }
 
+// ForecastData interface
+export interface ForecastData {
+  city: {
+    name: string;
+    country: string;
+  };
+  forecast: Array<{
+    dt: number;
+    main: {
+      temp: number;
+      temp_min: number;
+      temp_max: number;
+      humidity: number;
+    };
+    weather: Array<{
+      id: number;
+      main: string;
+      description: string;
+      icon: string;
+    }>;
+    wind: {
+      speed: number;
+      deg: number;
+    };
+  }>;
+}
+
+
 export const fetchCurrentWeather = async (city: string): Promise<WeatherData> => {
   try {
     const response = await fetch(`${API_BASE_URL}/weather/current?city=${encodeURIComponent(city)}`);
@@ -38,6 +66,23 @@ export const fetchCurrentWeather = async (city: string): Promise<WeatherData> =>
     throw error;
   }
 };
+
+
+export const fetchForecast = async (city: string): Promise<ForecastData> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/weather/forecast?city=${encodeURIComponent(city)}`);
+    
+    if (!response.ok) {
+      throw new Error('Forecast data not available');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching forecast data:', error);
+    throw error;
+  }
+};
+
 
 export const convertToFahrenheit = (celsius: number): number => {
   return (celsius * 9/5) + 32;
@@ -57,4 +102,10 @@ export const getWindDirection = (degrees: number): string => {
   const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
   const index = Math.round(degrees / 22.5) % 16;
   return directions[index];
+};
+
+
+export const formatDay = (timestamp: number): string => {
+  const date = new Date(timestamp * 1000);
+  return date.toLocaleDateString('en-US', { weekday: 'long' });
 };
