@@ -9,6 +9,8 @@ import ForecastCard from '../components/ForecastCard';
 import { 
   fetchCurrentWeather, 
   fetchForecast, 
+  fetchCurrentWeatherByCoords,
+  fetchForecastByCoords,
   WeatherData, 
   ForecastData,
   convertToFahrenheit, 
@@ -25,49 +27,52 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [forecastData, setForecastData] = useState<ForecastData | null>(null);
-  const [forecastLoading, setForecastLoading] = useState<boolean>(true);
-  const [forecastError, setForecastError] = useState<string | null>(null);
-  
-  // Fetch current weather data
+  const [currentCoords, setCurrentCoords] = useState<{lat: number, lon: number} | null>(null);
+
+  // Unified fetch weather and forecast data
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await fetchCurrentWeather(city);
-        setWeatherData(data);
+        
+        let weather, forecast;
+        
+        // Optionally use coordinates otherwise, use city name
+        if (currentCoords) {
+          [weather, forecast] = await Promise.all([
+            fetchCurrentWeatherByCoords(currentCoords.lat, currentCoords.lon),
+            fetchForecastByCoords(currentCoords.lat, currentCoords.lon)
+          ]);
+        } else {
+          [weather, forecast] = await Promise.all([
+            fetchCurrentWeather(city),
+            fetchForecast(city)
+          ]);
+        }
+        
+        setWeatherData(weather);
+        setForecastData(forecast);
         setLoading(false);
       } catch (err) {
-        setError('Failed to fetch weather data. Please try another city.');
+        setError('Failed to fetch weather data. Please try another location.');
         setLoading(false);
         console.error(err);
       }
     };
-
+  
     fetchData();
-  }, [city]);
-
-  // Fetch forecast data 
-  useEffect(() => {
-    const fetchForecastData = async () => {
-      try {
-        setForecastLoading(true);
-        setForecastError(null);
-        const data = await fetchForecast(city);
-        setForecastData(data);
-        setForecastLoading(false);
-      } catch (err) {
-        setForecastError('Failed to fetch forecast data.');
-        setForecastLoading(false);
-        console.error(err);
-      }
-    };
-
-    fetchForecastData();
-  }, [city]);
+  }, [city, currentCoords]);
 
   const handleSearch = (searchCity: string) => {
     setCity(searchCity);
+    setCurrentCoords(null); // Reset coordinates when searching by city name
+  };
+
+  // coordinate-based searches
+  const handleLocationSelect = (lat: number, lon: number, locationName: string) => {
+    setCurrentCoords({ lat, lon });
+    setCity(locationName); // Update city name for display purposes
   };
 
   const toggleUnit = () => {
@@ -79,7 +84,7 @@ export default function Home() {
       <div className="max-w-4xl mx-auto">
         {/* Top Controls */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <SearchBar onSearch={handleSearch} />
+          <SearchBar onSearch={handleSearch} onLocationSelect={handleLocationSelect} />
           <UnitToggle unit={unit} onToggle={toggleUnit} />
         </div>
         
@@ -109,7 +114,7 @@ export default function Home() {
           
           {/* Forecast Section */}
           <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {forecastLoading && (
+            {loading ? (
               // Loading placeholders
               Array(3).fill(null).map((_, index) => (
                 <div key={index} className="bg-gray-900 bg-opacity-60 rounded-lg p-4 text-center animate-pulse">
@@ -118,15 +123,11 @@ export default function Home() {
                   <div className="h-6 bg-gray-700 rounded w-20 mx-auto"></div>
                 </div>
               ))
-            )}
-            
-            {!forecastLoading && forecastError && (
+            ) : error ? (
               <div className="col-span-3 text-center">
                 <p className="text-red-400">Unable to load forecast data.</p>
               </div>
-            )}
-            
-            {!forecastLoading && !forecastError && forecastData && forecastData.forecast && (
+            ) : forecastData && forecastData.forecast ? (
               forecastData.forecast.slice(1, 4).map((forecast, index) => (
                 <ForecastCard
                   key={index}
@@ -137,10 +138,8 @@ export default function Home() {
                   unit={unit}
                 />
               ))
-            )}
-            
-            {/* Fallback to static placeholders if no real data is available */}
-            {!forecastLoading && !forecastError && (!forecastData || !forecastData.forecast || forecastData.forecast.length < 4) && (
+            ) : (
+              // Fallback to static placeholders if no real data is available
               <>
                 <div className="bg-gray-900 bg-opacity-60 rounded-lg p-4 text-center">
                   <h3 className="text-amber-200 font-medium">Tomorrow</h3>
