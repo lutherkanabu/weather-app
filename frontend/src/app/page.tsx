@@ -5,7 +5,17 @@ import Layout from '../components/Layout';
 import SearchBar from '../components/SearchBar';
 import UnitToggle from '../components/UnitToggle';
 import CurrentWeather from '../components/CurrentWeather';
-import { fetchCurrentWeather, WeatherData, convertToFahrenheit, formatDate, getWindDirection } from '../services/weatherService';
+import ForecastCard from '../components/ForecastCard';
+import { 
+  fetchCurrentWeather, 
+  fetchForecast, 
+  WeatherData, 
+  ForecastData,
+  convertToFahrenheit, 
+  formatDate, 
+  formatDay,
+  getWindDirection 
+} from '../services/weatherService';
 
 export default function Home() {
   // State variables
@@ -14,7 +24,11 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [forecastData, setForecastData] = useState<ForecastData | null>(null);
+  const [forecastLoading, setForecastLoading] = useState<boolean>(true);
+  const [forecastError, setForecastError] = useState<string | null>(null);
   
+  // Fetch current weather data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -31,6 +45,25 @@ export default function Home() {
     };
 
     fetchData();
+  }, [city]);
+
+  // Fetch forecast data 
+  useEffect(() => {
+    const fetchForecastData = async () => {
+      try {
+        setForecastLoading(true);
+        setForecastError(null);
+        const data = await fetchForecast(city);
+        setForecastData(data);
+        setForecastLoading(false);
+      } catch (err) {
+        setForecastError('Failed to fetch forecast data.');
+        setForecastLoading(false);
+        console.error(err);
+      }
+    };
+
+    fetchForecastData();
   }, [city]);
 
   const handleSearch = (searchCity: string) => {
@@ -74,51 +107,86 @@ export default function Home() {
               />
             </div>
           
-          {/* Forecast Section (placeholder) */}
+          {/* Forecast Section */}
           <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gray-900 bg-opacity-60 rounded-lg p-4 text-center">
-                <h3 className="text-amber-200 font-medium">Tomorrow</h3>
-                <div className="flex justify-center my-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <circle cx="12" cy="12" r="5" fill="#F59E0B" stroke="#F59E0B" />
-                    <line x1="12" y1="1" x2="12" y2="3" />
-                    <line x1="12" y1="21" x2="12" y2="23" />
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                    <line x1="1" y1="12" x2="3" y2="12" />
-                    <line x1="21" y1="12" x2="23" y2="12" />
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                  </svg>
+            {forecastLoading && (
+              // Loading placeholders
+              Array(3).fill(null).map((_, index) => (
+                <div key={index} className="bg-gray-900 bg-opacity-60 rounded-lg p-4 text-center animate-pulse">
+                  <div className="h-6 bg-gray-700 rounded w-24 mx-auto"></div>
+                  <div className="h-12 w-12 bg-gray-700 rounded-full my-2 mx-auto"></div>
+                  <div className="h-6 bg-gray-700 rounded w-20 mx-auto"></div>
                 </div>
-                <p className="text-white text-lg">19-27°{unit === 'celsius' ? 'C' : 'F'}</p>
+              ))
+            )}
+            
+            {!forecastLoading && forecastError && (
+              <div className="col-span-3 text-center">
+                <p className="text-red-400">Unable to load forecast data.</p>
               </div>
-            <div className="bg-gray-900 bg-opacity-60 rounded-lg p-4 text-center">
-              <h3 className="text-amber-200 font-medium">22 May</h3>
-              <div className="flex justify-center my-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path d="M18 10c0-1.66-1.34-3-3-3h-.17a5 5 0 0 0-9.66 1.03C4.2 8.5 4 9.22 4 10a4 4 0 0 0 4 4h9a3 3 0 0 0 3-3" fill="#FFFFFF" stroke="#FFFFFF" />
-                </svg>
-              </div>
-              <p className="text-white text-lg">20-24°C</p>
-            </div>
-            <div className="bg-gray-900 bg-opacity-60 rounded-lg p-4 text-center">
-              <h3 className="text-amber-200 font-medium">23 May</h3>
-              <div className="flex justify-center my-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <circle cx="12" cy="12" r="5" fill="#F59E0B" stroke="#F59E0B" />
-                  <line x1="12" y1="1" x2="12" y2="3" />
-                  <line x1="12" y1="21" x2="12" y2="23" />
-                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                  <line x1="1" y1="12" x2="3" y2="12" />
-                  <line x1="21" y1="12" x2="23" y2="12" />
-                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                </svg>
-              </div>
-              <p className="text-white text-lg">16-20°C</p>
-            </div>
+            )}
+            
+            {!forecastLoading && !forecastError && forecastData && forecastData.forecast && (
+              forecastData.forecast.slice(1, 4).map((forecast, index) => (
+                <ForecastCard
+                  key={index}
+                  day={formatDay(forecast.dt)}
+                  tempMin={unit === 'celsius' ? forecast.main.temp_min : convertToFahrenheit(forecast.main.temp_min)}
+                  tempMax={unit === 'celsius' ? forecast.main.temp_max : convertToFahrenheit(forecast.main.temp_max)}
+                  weatherIcon={forecast.weather[0].icon}
+                  unit={unit}
+                />
+              ))
+            )}
+            
+            {/* Fallback to static placeholders if no real data is available */}
+            {!forecastLoading && !forecastError && (!forecastData || !forecastData.forecast || forecastData.forecast.length < 4) && (
+              <>
+                <div className="bg-gray-900 bg-opacity-60 rounded-lg p-4 text-center">
+                  <h3 className="text-amber-200 font-medium">Tomorrow</h3>
+                  <div className="flex justify-center my-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <circle cx="12" cy="12" r="5" fill="#F59E0B" stroke="#F59E0B" />
+                      <line x1="12" y1="1" x2="12" y2="3" />
+                      <line x1="12" y1="21" x2="12" y2="23" />
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                      <line x1="1" y1="12" x2="3" y2="12" />
+                      <line x1="21" y1="12" x2="23" y2="12" />
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                    </svg>
+                  </div>
+                  <p className="text-white text-lg">19-27°{unit === 'celsius' ? 'C' : 'F'}</p>
+                </div>
+                <div className="bg-gray-900 bg-opacity-60 rounded-lg p-4 text-center">
+                  <h3 className="text-amber-200 font-medium">22 May</h3>
+                  <div className="flex justify-center my-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path d="M18 10c0-1.66-1.34-3-3-3h-.17a5 5 0 0 0-9.66 1.03C4.2 8.5 4 9.22 4 10a4 4 0 0 0 4 4h9a3 3 0 0 0 3-3" fill="#FFFFFF" stroke="#FFFFFF" />
+                    </svg>
+                  </div>
+                  <p className="text-white text-lg">20-24°{unit === 'celsius' ? 'C' : 'F'}</p>
+                </div>
+                <div className="bg-gray-900 bg-opacity-60 rounded-lg p-4 text-center">
+                  <h3 className="text-amber-200 font-medium">23 May</h3>
+                  <div className="flex justify-center my-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <circle cx="12" cy="12" r="5" fill="#F59E0B" stroke="#F59E0B" />
+                      <line x1="12" y1="1" x2="12" y2="3" />
+                      <line x1="12" y1="21" x2="12" y2="23" />
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                      <line x1="1" y1="12" x2="3" y2="12" />
+                      <line x1="21" y1="12" x2="23" y2="12" />
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                    </svg>
+                  </div>
+                  <p className="text-white text-lg">16-20°{unit === 'celsius' ? 'C' : 'F'}</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
         )}
